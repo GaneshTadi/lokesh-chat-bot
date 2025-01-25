@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lokesh's AI Assistant</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      overflow: hidden;
+    }
+
+    /* Chatbot Icon with Attached Text */
+    .chatbot-icon-container {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      display: flex;
+      align-items: center;
+      z-index: 1000;
+      cursor: pointer;
+    }
+
+    .chatbot-icon {
+      background-color: #28a745;
+      color: white;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      transition: transform 0.3s ease;
+      margin-left: 10px; /* Added margin-left for spacing */
+    }
+
+    .chatbot-icon:hover {
+      transform: scale(1.1);
+    }
+
+    /* Attached Text */
+    .chatbot-text {
+      color: #28a745;
+      font-size: 0.9em;
+      white-space: nowrap;
+      margin-right: 10px; /* Added margin-right */
+      /* Removed button-like styles */
+    }
+
+    /* Chatbot Modal */
+    .chatbot-modal {
+      position: fixed;
+      bottom: 100px;
+      right: 30px;
+      width: 400px;
+      max-width: 90%;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      animation: fadeIn 0.5s forwards;
+      z-index: 999;
+      max-height: 500px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeOut {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(20px); }
+    }
+
+    .chat-header {
+      background: linear-gradient(135deg, #0062cc, #28a745);
+      padding: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chat-header h5 {
+      color: white;
+      margin: 0;
+    }
+
+    .close-chat {
+      color: white;
+      cursor: pointer;
+      font-size: 1.2rem;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      background-color: #f8f9fa;
+    }
+
+    .message-bot, .message-user {
+      padding: 10px 15px;
+      border-radius: 20px;
+      margin-bottom: 10px;
+      max-width: 80%;
+      position: relative;
+      word-wrap: break-word;
+    }
+
+    .message-bot {
+      background: #e3f2fd;
+      align-self: flex-start;
+    }
+
+    .message-user {
+      background: #28a745;
+      color: white;
+      align-self: flex-end;
+    }
+
+    .typing-indicator {
+      display: none;
+      padding: 10px 15px;
+      background: #f1f1f1;
+      border-radius: 20px;
+      margin-bottom: 10px;
+      align-self: flex-start;
+    }
+
+    .typing-animation {
+      display: flex;
+      gap: 5px;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      background: #666;
+      border-radius: 50%;
+      animation: bounce 1.3s infinite;
+    }
+
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-5px); }
+    }
+
+    .chat-input-container {
+      padding: 10px;
+      border-top: 1px solid #ddd;
+      display: flex;
+      gap: 10px;
+      background: #fff;
+    }
+
+    #chat-input {
+      flex: 1;
+      border: 1px solid #ddd;
+      border-radius: 25px;
+      padding: 10px 15px;
+      resize: none;
+      transition: border-color 0.3s;
+    }
+
+    #chat-input:focus {
+      border-color: #28a745;
+      outline: none;
+    }
+
+    #send-button {
+      background-color: #28a745;
+      border: none;
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    #send-button:hover {
+      background-color: #1e7e34;
+    }
+
+    .highlight {
+      color: #28a745;
+      font-weight: 600;
+    }
+
+    .skill-tag {
+      display: inline-block;
+      background: #e3f2fd;
+      color: #28a745;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.8em;
+      margin: 2px;
+    }
+
+    .contact-link {
+      color: #28a745;
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+
+    .contact-link:hover {
+      color: #1e7e34;
+      text-decoration: underline;
+    }
+
+    /* Quick Action Buttons */
+    .quick-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .quick-actions button {
+      flex: 1 1 45%;
+      padding: 8px 12px;
+      border: 2px solid #28a745;
+      border-radius: 15px;
+      background-color: white;
+      color: #28a745;
+      cursor: pointer;
+      transition: background-color 0.3s, color 0.3s;
+      font-size: 0.9em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .quick-actions button:hover {
+      background-color: #28a745;
+      color: white;
+    }
+
+    .quick-actions i {
+      margin-right: 6px;
+    }
+
+    /* Price Tag */
+    .price-tag {
+      text-align: center;
+      padding: 10px;
+      background-color: #f8f9fa;
+      border-top: 1px solid #ddd;
+      font-size: 0.9em;
+      color: #28a745;
+    }
+  </style>
+</head>
+<body>
+  
+  <!-- Chatbot Icon with Attached Text -->
+  <div class="chatbot-icon-container" id="toggle-chat">
+    <div class="chatbot-text">
+      How can I help you today?
+    </div>
+    <div class="chatbot-icon">
+      <i class="bi bi-chat-dots-fill" style="font-size: 1.5rem;"></i>
+    </div>
+  </div>
+
+  <!-- Chatbot Modal -->
+  <div class="chatbot-modal" id="chatbot">
+    <div class="chat-header">
+      <h5>Lokesh's AI Assistant</h5>
+      <i class="bi bi-x-lg close-chat"></i>
+    </div>
+    <div id="chat-messages" class="chat-messages">
+      <div class="typing-indicator">
+        <div class="typing-animation">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+      </div>
+    </div>
+    <div class="chat-input-container">
+      <textarea id="chat-input" rows="1" placeholder="How can I help you today..."></textarea>
+      <button id="send-button" onclick="handleSendMessage()">
+        <i class="bi bi-send-fill"></i>
+      </button>
+    </div>
+    <div class="price-tag">
+    
+    </div>
+  </div>
+
+  <script>
+    const responses = {
+      greeting: `👋 Hello! Welcome to Lokesh's AI Assistant. I'm here to provide you with all the information you need about Lokesh. How can I assist you today?`,
+
+      casual: {
+        "hello": "👋 Hi there! Thank you for reaching out! How are you doing today?",
+        "hi": "Hello! It's great to meet you! How's your day going so far?",
+        "how are you": "Thank you for asking! 😊 I'm doing well. How can I help you today?",
+        "how r u": "I'm great, thank you! How can I assist you today?",
+        "good morning": "Good morning! 🌅 How can I help you today?",
+        "good afternoon": "Good afternoon! 🌞 What can I do for you today?",
+        "good evening": "Good evening! 🌆 How may I assist you tonight?",
+        "bye": "Goodbye! 👋 Feel free to reach out anytime. Have a great day!",
+        "end": "Goodbye! 👋 Feel free to reach out anytime. Have a great day!",
+        "thank you": "You're welcome! 😊 Is there anything else I can help you with?",
+         "tq": "You're welcome! 😊 Is there anything else I can help you with?"
+      },
+
+      faqs: {
+        "technicalskills": `💼 <span class="highlight">Technical Skills:</span><br>
+• <strong>Programming Languages:</strong><br>
+&nbsp;&nbsp;• Advance: Java (OOPs and Collections), JavaScript, HTML & CSS<br>
+&nbsp;&nbsp;• Intermediate: Node.js<br>
+• <strong>Frameworks:</strong><br>
+&nbsp;&nbsp;• React.js, Bootstrap<br>
+• <strong>Databases:</strong><br>
+&nbsp;&nbsp;• Intermediate: MongoDB<br>
+&nbsp;&nbsp;• Basics: SQL<br>
+• <strong>Development Tools:</strong><br>
+&nbsp;&nbsp;• IDEs/Text Editors: VSCode, Eclipse.<br>
+• <strong>Additional Skills:</strong><br>
+&nbsp;&nbsp;• Project Management: Agile/Scrum,<br>
+&nbsp;&nbsp;• Waterfall Methodology<br>
+&nbsp;&nbsp;• Software Development Lifecycle (SDLC)<br><br>
+Would you like to know more about any specific skill?`,
+
+        "projects": `🚀 <span class="highlight">Notable Projects:</span><br>
+1. <strong>Food-Cart-Website</strong> - A comprehensive e-commerce platform built with React.js and Node.js.<br>
+2. <strong>Rock-Paper-Scissor-Game</strong> - An interactive game developed using JavaScript.<br>
+3. <strong>Web-Based-Game-Flappy-Bird</strong> - A clone of the popular Flappy Bird game using HTML, CSS, and JavaScript.<br><br>
+Would you like more details on any of these projects?`,
+
+        "education": `🎓 <span class="highlight">Educational Background:</span><br>
+• <strong>B.Tech in Computer Science with Artificial Intelligence</strong><br>
+&nbsp;&nbsp;Kakinada Institute of Engineering and Technology, 2024 | Korangi<br>
+&nbsp;&nbsp;CGPA: 71<br>
+• <strong>Diploma in ECE</strong><br>
+&nbsp;&nbsp;Dr B R Ambedkar Polytechnic College, 2017-2020 | Yanam<br>
+&nbsp;&nbsp;Percentage: 77%<br>
+• <strong>Higher Education</strong><br>
+&nbsp;&nbsp;P.K.G High School, 2017 | Yanam<br>
+&nbsp;&nbsp;Percentage: 82%<br><br>
+Would you like to know more about my education or certifications?`,
+
+        "certifications": `📜 <span class="highlight">Certifications:</span><br>
+• Java (Basic) Skill Certification Test on Hacker Rank Solution<br>
+• Google AI-ML Virtual Internship by AICTE-EduSkills<br><br>
+Would you like details on any specific certification?`,
+
+        "internship": `🛠️ <span class="highlight">Internship:</span><br>
+• Salesforce Developer Virtual Internship<br><br>
+Need more information about my internship experience?`,
+
+        "contact": `📫 <span class="highlight">Connect with Me:</span><br>
+• Email: <a href="mailto:lokeshluc6@gmail.com" class="contact-link">lokeshluc6@gmail.com</a><br>
+• Phone: <a href="tel:+919390078202" class="contact-link">+91 9390078202</a><br>
+• LinkedIn: <a href="https://linkedin.com/in/lokesh" target="_blank" class="contact-link">LinkedIn Profile</a><br>
+• GitHub: <a href="https://github.com/lokesh" target="_blank" class="contact-link">GitHub Profile</a><br><br>
+How else can I assist you today?`
+      },
+
+      contactDetails: `📫 <span class="highlight">Connect with Me:</span><br>
+• Email: <a href="mailto:lokeshluc6@gmail.com" class="contact-link">lokeshluc6@gmail.com</a><br>
+• Phone: <a href="tel:+919390078202" class="contact-link">+91 9390078202</a><br>
+• LinkedIn: <a href="https://linkedin.com/in/lokesh" target="_blank" class="contact-link">LinkedIn Profile</a><br>
+• GitHub: <a href="https://github.com/lokesh" target="_blank" class="contact-link">GitHub Profile</a><br><br>
+How else can I assist you today?`
+    };
+
+    let conversationContext = {
+      greeted: false,
+      askedAbout: [],
+      lastQuery: ''
+    };
+
+    const chatMessages = document.getElementById("chat-messages");
+    const chatInput = document.getElementById("chat-input");
+    const typingIndicator = document.querySelector(".typing-indicator");
+    const chatbot = document.getElementById("chatbot");
+    const toggleChat = document.getElementById("toggle-chat");
+    const closeChat = document.querySelector(".close-chat");
+    let quickActionsShown = false; // Track if quick actions have been shown
+
+    const showTypingIndicator = () => {
+      const clone = typingIndicator.cloneNode(true);
+      clone.style.display = "flex";
+      chatMessages.appendChild(clone);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      return clone;
+    };
+
+    const removeTypingIndicator = (indicator) => {
+      if (indicator) {
+        indicator.remove();
+      }
+    };
+
+    const addMessage = (type, content, quickActions = false) => {
+      const messageDiv = document.createElement("div");
+      messageDiv.className = `message-${type}`;
+      
+      // Add timestamp
+      const timestamp = `<div class="mt-1" style="font-size: 0.7em; color: #666;">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>`;
+
+      messageDiv.innerHTML = `
+        ${content}
+        ${type === "bot" ? timestamp : ""}
+        ${quickActions ? '<div class="quick-actions"></div>' : ''}
+      `;
+      chatMessages.appendChild(messageDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      if (quickActions) {
+        const actionsContainer = messageDiv.querySelector('.quick-actions');
+        const actions = ["Technical Skills", "Projects", "Education", "Certifications", "Contact"];
+        actions.forEach(action => {
+          const button = document.createElement("button");
+          const icon = getIconForAction(action.toLowerCase().replace(/\s+/g, ''));
+          button.innerHTML = `<i class="${icon}"></i> ${action}`;
+          button.onclick = () => handleQuickOption(action.toLowerCase().replace(/\s+/g, ''));
+          actionsContainer.appendChild(button);
+        });
+      }
+    };
+
+    const getIconForAction = (action) => {
+      switch(action) {
+        case 'technicalskills':
+          return 'bi bi-tools';
+        case 'projects':
+          return 'bi bi-folder2-open';
+        case 'education':
+          return 'bi bi-mortarboard-fill';
+        case 'certifications':
+          return 'bi bi-award-fill';
+        case 'contact':
+          return 'bi bi-mailbox';
+        default:
+          return 'bi bi-info-circle';
+      }
+    };
+
+    const handleQuickOption = async (option) => {
+      addMessage("user", capitalizeFirstLetter(option.replace(/-/g, ' ')));
+      const indicator = showTypingIndicator();
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      removeTypingIndicator(indicator);
+      if (responses.faqs[option]) {
+        addMessage("bot", responses.faqs[option], false);
+      } else {
+        addMessage("bot", "Sorry, I didn't understand that. Could you please rephrase?", false);
+      }
+    };
+
+    const processInput = (input) => {
+      input = input.toLowerCase().trim();
+      conversationContext.lastQuery = input;
+
+      // Handle casual conversations with context
+      if (responses.casual[input]) {
+        // Check for 'bye' or 'end' to show contact details
+        if (input === "bye" || input === "end") {
+          return { message: responses.casual[input] + '<br>' + responses.contactDetails, quickActions: false };
+        }
+
+        // Check for 'thank you' to show contact details
+        if (input === "thank you") {
+          return { message: responses.casual[input] + '<br>' + responses.contactDetails, quickActions: false };
+        }
+
+        if (!conversationContext.greeted && (input === "hello" || input === "hi")) {
+          conversationContext.greeted = true;
+          return { message: responses.casual[input], quickActions: true };
+        }
+        return { message: responses.casual[input], quickActions: false };
+      }
+
+      // Handle specific queries
+      const keys = Object.keys(responses.faqs);
+      for (let key of keys) {
+        if (input.includes(key)) {
+          if (!conversationContext.askedAbout.includes(key)) {
+            conversationContext.askedAbout.push(key);
+          }
+          return { message: responses.faqs[key], quickActions: false };
+        }
+      }
+
+      // Handle unknown queries with context
+      let suggestion = "";
+      if (conversationContext.askedAbout.length === 0) {
+        suggestion = " Would you like to know about my technical skills, projects, education, certifications, internship, or how to contact me?";
+      } else {
+        const remaining = keys.filter(k => !conversationContext.askedAbout.includes(k));
+        if (remaining.length > 0) {
+          suggestion = ` You might also be interested in my ${remaining.map(k => capitalizeFirstLetter(k)).join(", ")}.`;
+        }
+      }
+
+      return { message: `I understand you're asking about "${input}".${suggestion} Feel free to ask anything specific about my work or skills!`, quickActions: false };
+    };
+
+    const handleSendMessage = async () => {
+      const input = chatInput.value.trim();
+      if (!input) return;
+
+      addMessage("user", input);
+      chatInput.value = "";
+
+      const indicator = showTypingIndicator();
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      removeTypingIndicator(indicator);
+
+      const { message, quickActions } = processInput(input);
+      addMessage("bot", message, quickActions);
+
+      // If quick actions haven't been shown yet and this is the first response, show them
+      if (conversationContext.greeted && !quickActionsShown && quickActions) {
+        quickActionsShown = true;
+        // Quick actions are already added in the message
+      }
+    };
+
+    chatInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSendMessage();
+      }
+    });
+
+    // Toggle Chatbot
+    toggleChat.addEventListener("click", () => {
+      if (chatbot.style.display === "flex") {
+        chatbot.style.animation = "fadeOut 0.5s forwards";
+        setTimeout(() => {
+          chatbot.style.display = "none";
+        }, 500);
+      } else {
+        chatbot.style.display = "flex";
+        chatbot.style.animation = "fadeIn 0.5s forwards";
+        chatInput.focus();
+        // Send initial greeting if not already greeted
+        if (!conversationContext.greeted) {
+          setTimeout(() => {
+            const indicator = showTypingIndicator();
+            setTimeout(() => {
+              removeTypingIndicator(indicator);
+              addMessage("bot", responses.greeting, true);
+              quickActionsShown = true;
+            }, 1000);
+          }, 500);
+        }
+      }
+    });
+
+    // Close Chatbot
+    closeChat.addEventListener("click", () => {
+      chatbot.style.animation = "fadeOut 0.5s forwards";
+      setTimeout(() => {
+        chatbot.style.display = "none";
+      }, 500);
+    });
+
+    // Capitalize first letter utility
+    function capitalizeFirstLetter(string) {
+      return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+
+    // Initial greeting if chatbot is opened by default
+    window.onload = () => {
+      // Optionally, open chatbot on page load
+      // toggleChat.click();
+    };
+  </script>
+</body>
+</html>
